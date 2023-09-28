@@ -1,0 +1,40 @@
+name: CWP Docker Workflow
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  
+jobs:
+  # Jobs are ran independently from each other, so build and scan needs to be in a single job.
+  scan-images:
+    name: Scan image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v3
+        # Defaults are sufficient generally
+        # https://github.com/actions/checkout#usage
+        
+
+      - name: Pull Docker Image
+        id: store_image_id
+        run: | 
+          docker pull vulnerables/web-dvwa
+          pulled_image_id=$(docker image ls -q vulnerables/web-dvwa)
+          echo "::set-output name=IMAGE_ID::$pulled_image_id"
+          
+
+      - name: Prisma Cloud Image Scan
+        id: scan
+        uses: PaloAltoNetworks/prisma-cloud-scan@v1
+        with:
+          pcc_console_url: ${{ secrets.PCC_CONSOLE_URL }}
+          pcc_user: ${{ secrets.PCC_USER }}
+          pcc_pass: ${{ secrets.PCC_PASS }}
+          image_name: ${{ steps.store_image_id.outputs.IMAGE_ID }}
