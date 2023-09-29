@@ -20,7 +20,11 @@ jobs:
         uses: actions/checkout@v3
         # Defaults are sufficient generally
         # https://github.com/actions/checkout#usage
-        
+
+      - name: Download twistcli from the Prisma Cloud Compute Console
+        run: |
+          curl --user ${{ secrets.PCC_USER }}:${{ secrets.PCC_PASS }} --output ./twistcli ${{ secrets.PCC_CONSOLE_URL }}/api/v1/util/twistcli
+          chmod a+x ./twistcli
 
       - name: Pull Docker Image
         id: store_image_id
@@ -30,11 +34,5 @@ jobs:
           echo "::set-output name=IMAGE_ID::$pulled_image_id"
           
 
-      - name: Prisma Cloud Image Scan
-        id: scan
-        uses: PaloAltoNetworks/prisma-cloud-scan@v1.5
-        with:
-          pcc_console_url: ${{ secrets.PCC_CONSOLE_URL }}
-          pcc_user: ${{ secrets.PCC_USER }}
-          pcc_pass: ${{ secrets.PCC_PASS }}
-          image_name: ${{ steps.store_image_id.outputs.IMAGE_ID }}
+      - name: Scan the image
+        run: ./twistcli images scan --address ${{ secrets.PCC_CONSOLE_URL }} --user $${{ secrets.PCC_USER }} --password ${{ secrets.PCC_PASS }} --details ${{ steps.store_image_id.outputs.IMAGE_ID }}
